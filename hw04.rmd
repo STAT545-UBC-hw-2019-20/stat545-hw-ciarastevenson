@@ -1,0 +1,120 @@
+---
+title: "Assignment 4"
+author: "Ciara Stevenson"
+date: "October 7, 2019"
+output: html_document
+---
+  
+  ```{r allow errors, echo = FALSE}
+knitr::opts_chunk$set(error = TRUE, warning = FALSE)
+
+```{r setup, include=FALSE, message=F}
+library(tidyr)
+library(gapminder)
+library(dplyr)
+library(ggplot2)
+library(readr)
+```
+
+## Exercise 1: Univariate Data Reshaping
+### Univariate Option 1
+
+#### Part 1: Life Expectancy of Scandinavian Countries (1952-2007)
+```{r}
+Scandinavian_LifeExp <- gapminder %>%
+  filter(country == "Denmark" | country == "Sweden" | country == "Finland" | country == "Iceland") %>%
+  pivot_wider(id_cols = year,
+              names_from = country,
+              values_from = lifeExp)
+Scandinavian_LifeExp
+
+```
+
+#### Part 2: Scatterplot of Scandinavian Country Life Expectancies (1952-2007)
+```{r}
+PlotData <- reshape2::melt(Scandinavian_LifeExp, id.vars = "year") %>%
+  rename(Country = variable)
+ggplot(PlotData, aes(year, value, col=Country)) +
+  geom_point () + 
+  facet_wrap(~Country) +
+  xlab("Year") +
+  ylab("Life Expectancy") +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+#### Part 3: Relengthened Data
+
+```{r}
+Relengthened_data <- Scandinavian_LifeExp %>%
+  pivot_longer(cols = c(Denmark, Finland, Iceland, Sweden),
+               names_to = "country",
+               values_to = "life_expectancy")
+Relengthened_data
+```
+
+## Exercise 2: Multivariate Option 1
+
+### 1. Wider Format
+
+Make a tibble with one row per year, and columns for life expectancy and GDP per capita for China and Canada.
+
+```{r}
+gapminder2 <- gapminder %>%
+  filter(country %in% c("China","Canada")) %>% 
+  select(year, country, lifeExp, gdpPercap) %>% 
+  pivot_wider(id_cols = year,
+              names_from = country,
+              values_from = c(lifeExp, gdpPercap)) 
+DT::datatable(gapminder2)
+```
+
+### 2. Re-lengthen
+
+```{r,fig.pos="center"}
+gapminder2 %>%
+  pivot_longer(cols = c(2:5),
+               names_to = c(".value", "country"),
+               names_sep = "_") %>% 
+  arrange(country) %>% 
+  DT::datatable()
+
+
+#Exercise 3: Tibble joins
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+guest <- read_csv("https://raw.githubusercontent.com/STAT545-UBC/Classroom/master/data/wedding/attend.csv")
+email <- read_csv("https://raw.githubusercontent.com/STAT545-UBC/Classroom/master/data/wedding/emails.csv")
+```
+
+##3.1
+For each guest in the guestlist (guest tibble), add a column for email address, which can be found in the email tibble.
+
+```{r}
+emailnew <- separate_rows(email, guest, sep = ", ") %>% 
+  rename(name = guest) #separate guests' names and rename 'name' column
+guest %>% 
+  left_join(emailnew, by = "name") %>% 
+  DT::datatable()
+```
+
+##3.2
+Who do we have emails for, yet are not on the guestlist?
+
+```{r}
+emailnew %>% 
+  anti_join(guest, by = "name") %>% 
+  DT::datatable()
+```
+
+#Turner, Albert, and Vivian have emails but are not on the guestlist. 
+
+##3.3
+Make a guestlist that includes everyone we have emails for (in addition to those on the original guestlist).
+
+```{r}
+guest %>% 
+  full_join(emailnew, by = "name") %>% 
+  DT::datatable()
+```
+
+
